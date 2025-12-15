@@ -12,6 +12,7 @@ The goal of this project is to simulate a real-world ITSM (IT Service Management
 ![TypeScript](https://img.shields.io/badge/TypeScript-TS-blue?logo=typescript)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-F7931E?logo=scikitlearn)
 ![Status](https://img.shields.io/badge/status-in%20progress-yellow)
+![Frontend CI](https://github.com/Eduardo-Ve/autoticket/actions/workflows/nextjs.yml/badge.svg)
 
 
 ## Project Overview
