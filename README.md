@@ -1,40 +1,177 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# AutoTicket – IT Service Ticket Classification
 
-## Getting Started
+AutoTicket is an end-to-end machine learning project designed to automatically classify IT service tickets by **queue (department)** and **priority**, based on the textual description provided by the user.
 
-First, run the development server:
+The goal of this project is to simulate a real-world ITSM (IT Service Management) scenario, combining **machine learning**, **API design**, and **modern web development** into a single, deployable system.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+### Tecnologias utilizadas
+![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi)
+![Next.js](https://img.shields.io/badge/Next.js-Frontend-black?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-TS-blue?logo=typescript)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-F7931E?logo=scikitlearn)
+![Status](https://img.shields.io/badge/status-in%20progress-yellow)
+
+
+## Project Overview
+
+The system takes a free-text ticket description and returns:
+
+- Suggested IT queue (e.g. Hardware, Access, HR Support, etc.)
+- Confidence score for the prediction
+- Top-3 predicted classes with probabilities
+- Automatic review routing when confidence is low
+
+The architecture is intentionally split into two services to reflect production best practices.
+
+---
+
+## Architecture
+
+```
+[ Next.js Frontend ]
+        |
+        | (POST /api/classify)
+        v
+[ FastAPI ML Service ]
+        |
+        | (Sentence Embeddings + Classifier)
+        v
+[ Trained ML Models ]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Frontend (Next.js + TypeScript)
+- User interface for entering ticket descriptions
+- Server-side API route acting as a proxy to the ML service
+- Confidence visualization and human-review warnings
+- Tailwind CSS for UI styling
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+### Backend (FastAPI + Python)
+- Loads trained machine learning models
+- Performs inference using text embeddings
+- Applies confidence thresholds
+- Returns structured prediction results
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+---
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+## Machine Learning Approach
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Dataset
+**IT Service Ticket Classification Dataset**
 
-## Learn More
+- ~47,000 tickets
+- 8 IT-related categories:
+  - Hardware
+  - HR Support
+  - Access
+  - Administrative rights
+  - Storage
+  - Purchase
+  - Internal Project
+  - Miscellaneous
 
-To learn more about Next.js, take a look at the following resources:
+### Model Pipeline
+- **Text Embeddings:** SentenceTransformer  
+  (`paraphrase-multilingual-MiniLM-L12-v2`)
+- **Classifier:** Logistic Regression
+- **Multi-class classification**
+- **Probability-based decision logic**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+### Why Logistic Regression?
+- Interpretable probabilities
+- Fast inference
+- Stable confidence scores
+- Suitable for production-like routing logic
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Confidence-Based Routing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Instead of blindly trusting predictions, the system applies **confidence thresholds**:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+- High confidence → automatic assignment
+- Low confidence → routed to manual review
+
+Example:
+```json
+{
+  "queue": "REVIEW_QUEUE",
+  "queue_label": "Hardware",
+  "queue_confidence": 0.38,
+  "queue_top3": [
+    ["Hardware", 0.38],
+    ["Access", 0.31],
+    ["Miscellaneous", 0.29]
+  ]
+}
+```
+
+This mimics real-world ITSM workflows and avoids overconfident misclassification.
+
+---
+
+## Model Performance (Queue Classification)
+
+```
+Accuracy: 86.5%
+Macro F1-score: 0.866
+Weighted F1-score: 0.865
+```
+
+The model performs well across all categories, with stronger performance on well-defined classes and honest uncertainty on broader ones (e.g. Hardware).
+
+---
+
+## Technologies Used
+
+### Frontend
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Fetch API
+
+### Backend
+- FastAPI
+- scikit-learn
+- SentenceTransformers
+- Joblib
+- Uvicorn
+
+### ML / Data
+- Pandas
+- NumPy
+- Logistic Regression
+- Sentence Embeddings
+
+---
+
+## Current Status
+
+This project is **actively under development**.
+
+Planned improvements:
+- Further model calibration and threshold tuning
+- Active learning from low-confidence samples
+- Deployment of ML API to cloud (Docker / VPS)
+- Full production deployment on Vercel
+- Logging and monitoring for predictions
+
+---
+
+## Purpose
+
+This project was built as:
+- A learning exercise in **applied machine learning**
+- A demonstration of **ML system design**
+- A portfolio project showcasing **full-stack + ML integration**
+
+It focuses on **realistic constraints**, not just model accuracy.
+
+---
+
+## Author
+
+Developed by **Eduardo Velásquez**  
+Computer Engineering Student  
+Focus on Machine Learning, Backend Systems, and Applied AI
