@@ -81,7 +81,18 @@ export default function Home() {
             Describe your issue and let the AI suggest the best department to handle it.
           </p>
         </div>
-
+        {/* Alerta de Modelo en Desarrollo */}
+        <div className="mb-8 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20">
+          <div className="flex items-start gap-3">
+            <span className="text-lg">🚧</span>
+            <div className="text-sm text-amber-800 dark:text-amber-200">
+              <p className="font-semibold">Experimental Model</p>
+              <p className="mt-1 text-amber-700 dark:text-amber-300/80">
+                This system is still under development. Please verify the results manually as some classifications may be inaccurate.
+              </p>
+            </div>
+          </div>
+        </div>
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
