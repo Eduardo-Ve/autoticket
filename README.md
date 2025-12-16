@@ -6,9 +6,8 @@ The goal of this project is to simulate a real-world ITSM (IT Service Management
 
 ### Used API
 
-You can see how the model works here:
-
-### [autoticket-ml-api]([url](https://github.com/Eduardo-Ve/autoticket-ml-api))
+You can see how the API works here:
+* https://github.com/Eduardo-Ve/autoticket-ml-api
 ---
 ### Technologies
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python)
