@@ -1,79 +1,124 @@
 // pages/api/classify-ticket.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from "next";
 
-// 1. Definimos la forma de los datos de Entrada (Request)
+// 1) Request que llega desde el frontend
 interface TicketRequest {
   description: string;
 }
 
-type TicketCategory = 'Soporte Técnico' | 'Facturación' | 'Recursos Humanos' | 'Otros';
+// 2) Categorías reales del modelo (dataset IT)
+export type TicketCategory =
+  | "Access"
+  | "Administrative rights"
+  | "HR Support"
+  | "Hardware"
+  | "Internal Project"
+  | "Miscellaneous"
+  | "Purchase"
+  | "Storage"
+  | "REVIEW";
 
+// 3) Forma exacta de lo que devuelve FastAPI (según tu screenshot)
+interface FastApiResponse {
+  success: boolean;
+  data?: {
+    category: TicketCategory;        // decisión final (puede venir REVIEW)
+    category_label: TicketCategory;  // top1 real
+    confidence: number;              // 0..1
+    threshold_used?: number;         // ej 0.6
+    top3?: Array<[TicketCategory, number]>; // [["Access",0.96], ...]
+  };
+  error?: string;
+}
+
+// 4) Respuesta que devuelve ESTA API de Next al frontend
 interface TicketResponse {
   success: boolean;
   data?: {
     category: TicketCategory;
-    confidence: number; // Porcentaje de seguridad del modelo (0 a 1) que es que si pasa a revisión humana
+    category_label: TicketCategory;
+    confidence: number;
+    threshold_used?: number;
+    top3?: Array<[TicketCategory, number]>;
     ticketId: string;
   };
   error?: string;
 }
 
 // ----------------------------------------------------------------------
-// 3. Lógica del Modelo (Simulada)
+// Helper: llama a FastAPI
 // ----------------------------------------------------------------------
-async function predictCategory(text: string): Promise<{ category: TicketCategory; confidence: number }> {
-  // SIMULACIÓN: Lógica simple basada en palabras clave
-  const lowerText = text.toLowerCase();
-  
-  if (lowerText.includes('pago') || lowerText.includes('factura') || lowerText.includes('dinero')) {
-    return { category: 'Facturación', confidence: 0.95 };
-  }
-  if (lowerText.includes('wifi') || lowerText.includes('error') || lowerText.includes('pantalla')) {
-    return { category: 'Soporte Técnico', confidence: 0.88 };
-  }
-  if (lowerText.includes('contrato') || lowerText.includes('vacaciones')) {
-    return { category: 'Recursos Humanos', confidence: 0.92 };
+async function callFastApi(text: string): Promise<FastApiResponse> {
+  const baseUrl = process.env.ML_API_URL; // ej: http://127.0.0.1:8000 o https://tu-api.onrender.com
+  if (!baseUrl) {
+    return { success: false, error: "ML_API_URL no está configurada." };
   }
 
-  return { category: 'Otros', confidence: 0.50 };
+  // timeout para evitar que el frontend quede colgado
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+
+  try {
+    const r = await fetch(`${baseUrl}/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: text }),
+      signal: controller.signal,
+    });
+
+    const data = (await r.json()) as FastApiResponse;
+
+    if (!r.ok) {
+      return {
+        success: false,
+        error: data?.error || `FastAPI respondió status ${r.status}`,
+      };
+    }
+
+    return data;
+  } catch (err: any) {
+    const msg = err?.name === "AbortError"
+      ? "Timeout conectando a la ML API"
+      : "No se pudo conectar a la ML API";
+    return { success: false, error: msg };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // ----------------------------------------------------------------------
-// 4. El Handler de la API (Controlador)
+// Handler
 // ----------------------------------------------------------------------
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<TicketResponse>
 ) {
-  // A. Validar método HTTP
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Método no permitido. Usa POST.' });
+  // A) Método
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, error: "Método no permitido. Usa POST." });
   }
 
-  try {
-    // B. Obtener y validar el body
-    // Forzamos el tipo 'TicketRequest' para tener autocompletado, pero validamos que exista.
-    const body = req.body as TicketRequest;
+  // B) Body
+  const body = req.body as TicketRequest;
 
-    if (!body.description || typeof body.description !== 'string') {
-      return res.status(400).json({ success: false, error: 'Falta el campo "description" o no es texto.' });
-    }
-
-    // C. Llamar al modelo (Simulado o Real)
-    const prediction = await predictCategory(body.description);
-
-    // D. Responder con el JSON estructurado
-    return res.status(200).json({
-      success: true,
-      data: {
-        category: prediction.category,
-        confidence: prediction.confidence,
-        ticketId: `tkt-${Date.now()}` // Generamos un ID ficticio
-      }
-    });
-
-  } catch (error) {
-    console.error('Error clasificando ticket:', error);
-    return res.status(500).json({ success: false, error: 'Error interno del servidor al procesar el modelo.' });
+  if (!body?.description || typeof body.description !== "string") {
+    return res.status(400).json({ success: false, error: 'Falta el campo "description" o no es texto.' });
   }
+
+  // C) Llamar a FastAPI
+  const fast = await callFastApi(body.description);
+
+  if (!fast.success || !fast.data) {
+    // 502 = Bad Gateway (tu Next actuó como proxy y el backend falló)
+    return res.status(502).json({ success: false, error: fast.error || "Error en el modelo." });
+  }
+
+  // D) Responder al frontend con ticketId + data
+  return res.status(200).json({
+    success: true,
+    data: {
+      ...fast.data,
+      ticketId: `tkt-${Date.now()}`,
+    },
+  });
 }
