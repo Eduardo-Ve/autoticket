@@ -4,6 +4,11 @@ AutoTicket is an end-to-end machine learning project designed to automatically c
 
 The goal of this project is to simulate a real-world ITSM (IT Service Management) scenario, combining **NLP**, **API design**, and **modern web development** into a single, deployable system.
 
+### Used API
+
+You can see how the model works here:
+
+### [autoticket-ml-api]([url](https://github.com/Eduardo-Ve/autoticket-ml-api))
 ---
 ### Technologies
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python)
