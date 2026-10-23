@@ -68,7 +68,6 @@ Instead of using heavy Transformer models, this project utilizes a highly effici
   * Character-level TF-IDF (3-5 ngrams) to handle typos and sub-word information.
 
 * Classifier: SGDClassifier with log-loss (Stochastic Gradient Descent).
-  * Calibrated to output probabilities similar to Logistic Regression.
   * Optimized for class balance using class_weight='balanced'.
 
 ### Performance
